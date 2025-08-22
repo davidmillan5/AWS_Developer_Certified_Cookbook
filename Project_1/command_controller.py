@@ -2,53 +2,98 @@ import boto3
 from botocore.exceptions import ClientError
 
 
-def createNewUser():
-    print("Do you want to create a new user: ")
-    response = input().lower()
-    if response == "yes":
-        print(" Please enter the name of the new User: ")
-        newUser = input().title()
+def aim_operation_console():
+    print("Welcome To The Console From AIM Service in AWS what do you want to do Today? Select:"
+          "\n1. To Create a New User \n2. To Create a New Group \n3. To Create a New Role")
+    response = int(input())
+    if response == 1:
+        new_user = input("Please enter the name of the new User: ").title()
+        access_key_id = input("Enter your AWS Access Key Id: ")
+        secret_access_key = input("Enter your AWS Secret Access Key Id: ")
+        aws_region = input("Choose The region where the new User will be created: ")
+
+        if not access_key_id or not secret_access_key:
+            print("❌ Error: Please make sure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are inserted")
+            return None
+
+        try:
+            # Connect to AWS
+            iam = boto3.client(
+                'iam',
+                aws_access_key_id=access_key_id,
+                aws_secret_access_key=secret_access_key,
+                region_name=aws_region
+            )
+
+            # Create the user
+            response = iam.create_user(UserName=new_user)
+
+            # Success message
+            print(f"✅ Success! User '{new_user}' has been created!")
+            print(f"📋 User details:")
+            print(f"   - Name: {response['User']['UserName']}")
+            print(f"   - ID: {response['User']['UserId']}")
+            print(f"   - Created: {response['User']['CreateDate']}")
+
+        except ClientError as error:
+            # Handle different types of errors
+            error_code = error.response['Error']['Code']
+
+            if error_code == 'EntityAlreadyExists':
+                print(f"❌ Error: User '{new_user}' already exists!")
+            elif error_code == 'InvalidClientTokenId':
+                print("❌ Error: Your AWS credentials are invalid. Check your .env file.")
+            elif error_code == 'AccessDenied':
+                print("❌ Error: You don't have permission to create users.")
+            else:
+                print(f"❌ Error: Something went wrong - {error}")
+    elif response == 2:
+        print("Please enter the name of the new Group: ")
+        new_group = input()
         print("Enter your AWS Access Key Id: ")
-        awsAccessKeyId = input()
+        access_key_id = input()
         print("Enter your AWS Secret Access Key Id: ")
-        awsSecretAccessKey = input()
+        secret_access_key = input()
         print("Choose The region where the new User will be created: ")
-        awsRegion = input()
-        print("Enter your AWS Profile: ")
-        awsProfile = input()
-        if not awsAccessKeyId or not awsSecretAccessKey:
-            print("❌ Error: Please make sure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are in your .env file")
-            return
+        aws_region = input()
 
-    # Connect to AWS
-    iam = boto3.client(
-        'iam',
-        aws_access_key_id=awsAccessKeyId,
-        aws_secret_access_key=awsSecretAccessKey,
-        region_name=awsRegion
-    )
+        if not access_key_id or not secret_access_key:
+            print("❌ Error: Please make sure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are inserted")
+            return None
 
-    # Create the user
-    response = iam.create_user(UserName=newUser)
+        try:
+            # Connect to AWS
+            iam = boto3.client(
+                'iam',
+                aws_access_key_id=access_key_id,
+                aws_secret_access_key=secret_access_key,
+                region_name=aws_region
+            )
 
-    # Success message
-    print(f"✅ Success! User '{newUser}' has been created!")
-    print(f"📋 User details:")
-    print(f"   - Name: {response['User']['UserName']}")
-    print(f"   - ID: {response['User']['UserId']}")
-    print(f"   - Created: {response['User']['CreateDate']}")
+            response = iam.create_group(
+                GroupName=new_group
+            )
 
-    # except ClientError as error:
-    # # Handle different types of errors
-    # error_code = error.response['Error']['Code']
-    #
-    # if error_code == 'EntityAlreadyExists':
-    #     print(f"❌ Error: User '{newUser}' already exists!")
-    # elif error_code == 'InvalidClientTokenId':
-    #     print("❌ Error: Your AWS credentials are invalid. Check your .env file.")
-    # elif error_code == 'AccessDenied':
-    #     print("❌ Error: You don't have permission to create users.")
-    # else:
-    #     print(f"❌ Error: Something went wrong - {error}")
+            print(f"✓ Group '{new_group}' created successfully")
+            print(f"Group ARN: {response['Group']['Arn']}")
+            return response
 
-createNewUser()
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'EntityAlreadyExists':
+                print(f"Group '{new_group}' already exists")
+            elif error_code == 'InvalidClientTokenId':
+                print(f"Invalid credentials. Check your AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+            elif error_code == 'AccessDenied':
+                print(f"Access denied. Check your IAM permissions")
+            else:
+                print(f"Error creating group: {e}")
+            return None
+        except ValueError as e:
+            print(f"Configuration error: {e}")
+            return None
+    return None
+
+
+if __name__ == "__main__":
+    aim_operation_console()
