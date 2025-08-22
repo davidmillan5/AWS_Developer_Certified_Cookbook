@@ -1,4 +1,5 @@
 import boto3
+import json
 from botocore.exceptions import ClientError
 
 
@@ -92,6 +93,57 @@ def aim_operation_console():
         except ValueError as e:
             print(f"Configuration error: {e}")
             return None
+    elif response == 3:
+        new_role = input("Please enter the name of the new Role: ")
+        access_key_id = input("Enter your AWS Access Key Id: ")
+        secret_access_key = input("Enter your AWS Secret Access Key Id: ")
+        aws_region = input("Choose The region where the new Role will be created: ")
+        service_principal = input("Insert service prinicipal")
+
+        # Define trust policy
+        trust_policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": service_principal
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        }
+        if not access_key_id or not secret_access_key:
+            print("❌ Error: Please make sure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are inserted")
+            return None
+
+        try:
+            # Connect to AWS
+            iam = boto3.client(
+                'iam',
+                aws_access_key_id=access_key_id,
+                aws_secret_access_key=secret_access_key,
+                region_name=aws_region
+            )
+
+            # Create role parameters
+            params = {
+                'RoleName': new_role,
+                'AssumeRolePolicyDocument': json.dumps(trust_policy)
+            }
+
+            # Create the role
+            response = iam.create_role(**params)
+
+            print(f"✅ Role '{new_role}' created successfully!")
+            print(f"ARN: {response['Role']['Arn']}")
+
+            return response
+
+        except ClientError as e:
+            print(f"❌ Error creating role: {e}")
+            return None
+
     return None
 
 
